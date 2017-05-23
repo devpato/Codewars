@@ -16,3 +16,4 @@ Test.describe("addBinary(1,2)", function() {
 function addBinary(a,b) {
   return parseInt(a+b,10).toString(2);
 }
+/**/
