@@ -34,3 +34,33 @@ Test.assertEquals(duplicateEncode("din"),"(((");
 Test.assertEquals(duplicateEncode("recede"),"()()()");
 Test.assertEquals(duplicateEncode("Success"),")())())","should ignore case");
 Test.assertEquals(duplicateEncode("(( @"),"))((");
+
+
+/* Other solutions
+function duplicateEncode(word){
+
+    var unique='';
+    word = word.toLowerCase();
+    for(var i=0; i<word.length; i++){
+        if(word.lastIndexOf(word[i]) == word.indexOf(word[i])){
+            unique += '(';
+        }
+        else{
+            unique += ')';
+        }
+    }
+    return unique;
+}
+
+function duplicateEncode(word){
+    return word
+    .toLowerCase()
+    .split('')
+    .map( function(a,i,w) {
+      return w.indexOf(a) == w.lastIndexOf(a) ? '(' : ')'
+    })
+    .join('');
+}
+
+
+*/
