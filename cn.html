@@ -1,0 +1,237 @@
+<ui:composition xmlns="http://www.w3.org/1999/xhtml"
+       xmlns:ui="http://java.sun.com/jsf/facelets"
+       xmlns:f="http://java.sun.com/jsf/core"
+       xmlns:h="http://java.sun.com/jsf/html"
+       xmlns:p="http://primefaces.org/ui"
+       template="#{templateBase.selectedTemplatePath}"
+       xmlns:c="http://java.sun.com/jsp/jstl/core"
+       xmlns:csxcomponent="http://java.sun.com/jsf/composite/csxcomponent">
+       
+       <ui:define name="head">
+              <link href="${request.contextPath}/resources/csx/css/constructionNotes.css" rel="stylesheet" type="text/css"></link>
+              <script type="text/javascript" src="${request.contextPath}/resources/csx/js/constructionNotes.js"></script>
+       </ui:define>
+
+       <ui:define name="webPageTitle">CSX Construction Notes</ui:define>
+       <ui:define name="metadata">
+              <f:metadata>
+                  <f:viewParam name="AFEID" value="#{constructionNotesSearchFilter.projectId}" required="false"/>
+<!--              <f:event type="preRenderView" listener="#{constructionNotes.loadWorkOrders}"/> -->
+              </f:metadata>
+       </ui:define>
+       <ui:define name="pageName">Construction Notes | AFEID: #{constructionNotesSearchFilter.projectId}</ui:define>
+       <ui:define name="pageContent" rendered='#{authenticatedUser.validateAccess == true}'>
+              <h:form>
+              <p:remoteCommand name="onload" update="constructionNotesForm constructionNotesSearchPanel" process="@this" partialSubmit="true" onstart="startProgressLoader()" oncomplete="endProgressLoader()" actionListener="#{constructionNotes.loadWorkOrders}"/>
+              </h:form>
+              <h:form id="constructionNotesSearchPanel">
+                     <p:fieldset style="margin-top: 15px;">
+                           <h:panelGrid id="searchPanel" columns="7" cellspacing="18" style="margin-bottom: -6px;">
+                                  <h:panelGroup id="projectGroup" layout="block">
+                                         <h:panelGrid columns="2" cellspacing="2">
+                                                <p:outputLabel for="projectInputText" value="Project:"/>
+                                                <p:inputText id="projectInputText" value="#{constructionNotesSearchFilter.projectId}"/>
+                                   </h:panelGrid>
+                             </h:panelGroup>
+                             <h:panelGroup id="locationsGroup" layout="block">
+                                         <h:panelGrid columns="2" cellspacing="2">
+                                                <p:outputLabel for="locationMenu" value="Location:"/>
+                                                <p:selectCheckboxMenu id="locationMenu" value="#{constructionNotesSearchFilter.selectedLocations}" label="Locations" filter="true" filterMatchMode="startsWith" style="width: 80px;" panelStyle="width:250px;">
+                                         <f:selectItems value="#{constructionNotesSearchFilter.locations}" />
+                                         </p:selectCheckboxMenu>                          
+                                         </h:panelGrid>
+                             </h:panelGroup>
+                             <h:panelGroup id="teamsGroup" layout="block">
+                                         <h:panelGrid columns="2" cellspacing="2">
+                                                <p:outputLabel for="teamsMenu" value="Team:"/>
+                                                <p:selectCheckboxMenu id="teamsMenu" value="#{constructionNotesSearchFilter.selectedTeams}" label="Locations" filter="true" filterMatchMode="startsWith" style="width: 60px;" panelStyle="width:250px;">
+                                         <f:selectItems value="#{constructionNotesSearchFilter.teams}" />
+                                         </p:selectCheckboxMenu>                                        
+                                   </h:panelGrid>
+                             </h:panelGroup>
+                                  <h:panelGroup id="startDateGroup" layout="block">
+                                         <h:panelGrid columns="2" cellspacing="2">
+                                                <p:outputLabel for="startDate" value="Starting Date:"/>
+                                         <p:calendar id="startDate" value="#{constructionNotesSearchFilter.startDate}" locale="de" navigator="true" pattern="MM-dd-yyyy"/>
+                                   </h:panelGrid>
+                             </h:panelGroup>
+                             <h:panelGroup id="endDateGroup" layout="block">
+                                   <h:panelGrid columns="2" cellspacing="2">
+                                                <p:outputLabel for="endDate" value="Ending Date:"/>
+                                         <p:calendar id="endDate" value="#{constructionNotesSearchFilter.endDate}" locale="de" navigator="true" pattern="MM-dd-yyyy"/>
+                                   </h:panelGrid>
+                             </h:panelGroup>
+                             <h:panelGroup id="searchButton" layout="block">
+                                         <p:commandButton type="submit" value ="Search" id="searchWorkorders" styleClass="ui-priority-primary" actionListener="#{constructionNotes.search}" onclick="startProgressLoader()" ajax="true" oncomplete="endProgressLoader()" update="searchPanel constructionNotesForm"/>
+                                  </h:panelGroup>
+                                  <h:panelGroup id="resetButton" layout="block">
+                                  <p:commandButton type="submit" value="Reset"  ajax="true" styleClass="ui-priority-secondary" actionListener="#{constructionNotes.reset}" update="searchPanel constructionNotesForm"/>
+                                  </h:panelGroup>
+                           </h:panelGrid>
+                     </p:fieldset>
+              </h:form>
+              <h:form id="constructionNotesForm">
+                 <div id="constructionNotes_wrapper" class="constructionNotes_wrapper" style="display:none;">
+	                 <h:panelGroup rendered="#{not empty constructionNotes.workorderSearchList}">
+                        <div id="exportPanel" style="text-align: right; margin-top: 10px; margin-bottom: 10px;">
+	                        <table style="width: 100%">
+                               <tr>
+	                               <td>
+	                                   <h:panelGroup id="totalWorkOrdersGroup" layout="block">
+	                                          <div id="totalWorkOrders" style="text-align: left; font-weight: bold; font-size: 14px">Total Work Plans: #{constructionNotes.workOrderCount()}</div>
+	                                   </h:panelGroup>
+	                               </td>
+	                               <td>
+	                                   <h:commandLink id="exportDataTableExcel" update="@none" actionListener="#{constructionNotes.exportExcel}">
+	                                          <p:graphicImage styleClass="imageLink export" name="/images/office-icons/Excel-16.gif" />
+	                                   </h:commandLink>
+	                                   <p:tooltip id="toolTip" for="exportDataTableExcel" value="Download as Excel Document" />
+	                                   <h:commandLink id="exportDataTablePdf" update="@none" actionListener="#{constructionNotes.exportPdf}">
+	                                          <p:graphicImage id="constructionNotesExportPdf" name="/images/office-icons/PDF-16.gif" styleClass="imageLink" />
+	                                   </h:commandLink>
+	                               </td>
+                               </tr>
+	                        </table>
+                               <p:separator />
+                        </div>
+	                        <div class="ui-grid">
+	                            <!-- Workorder Panel -->
+	                            <div class="ui-grid-col-8">
+	                                <h:panelGroup id="workOrdersPanel" layout="block">
+                                       <div id="workOrdersPanelContainer" style="overflow-y: auto;">
+                                          <ui:repeat id="tables" var="workorder" value="#{constructionNotes.workorderSearchList}">
+	                                          <p:accordionPanel activeIndex="null" styleClass="accordian">
+                                                <p:tab title="#{constructionNotes.tabTitle(workorder)}">
+	                                                <p:panel id="notes" header="Constuction Notes">
+	                                                       <h:panelGrid>
+	                                                              <h:outputText value="#{workorder.consNotes.notes}"/>
+	                                                       </h:panelGrid>
+	                                                </p:panel>
+                                                    <p:panel id="issues" header="Constuction Issues">
+                                                           <h:panelGrid>
+                                                                  <h:outputText value="#{workorder.consNotes.issues}"/>
+                                                           </h:panelGrid>
+                                                    </p:panel>
+                                                    <p:panel id="laborHrs" header="Labor Hours">
+                                                           <p:dataTable id="laborTable" var="labor" value="#{constructionNotes.sortLabTrans(workorder)}" style="width: 100%;" reflow="true" styleClass="bot-border table-align no-header-borders horizontal-border">
+                                                                  <p:column id="ui-col-1" styleClass="construction-list-data-table-header-row" headerText="Signalmen Name">
+                                                                         <h:outputText id="laborMan" value="#{labor.laborcode}"/>
+                                                                  </p:column>
+                                                                  <p:column id="ui-col-2" styleClass="construction-list-data-table-header-row" headerText="Hours">
+                                                                         <h:outputText id="laborManHrs" value="#{labor.regularhrs}"/>
+                                                                  </p:column>
+                                                           </p:dataTable>
+                                                    </p:panel>
+                                                    <p:panel id="binaryActivities" header="Binary Activities" rendered="#{not empty workorder.binaryActivities}">
+                                                           <p:dataTable id="binaryActivitiesTable" var="activity" value="#{workorder.binaryActivities}" style="width: 100%;" reflow="true" styleClass="bot-border table-align no-header-borders horizontal-border">
+                                                                  <p:column id="ui-col-1" styleClass="construction-list-data-table-header-row" headerText="Activity Name">
+                                                                         <h:outputText id="activity" value="#{activity.csxpmtwo.csxpmtactivity}"/>
+                                                                  </p:column>
+                                                                  <p:column id="ui-col-2" styleClass="construction-list-data-table-header-row" headerText="Date Completed">
+                                                                         <h:outputText id="taskId" value="#{workorder.csxduedate}"/>
+                                                                  </p:column>
+                                                                  <p:column id="ui-col-3" styleClass="construction-list-data-table-header-row" headerText="Completed">
+                                                                         <p:selectBooleanCheckbox value="#{true}"  disabled="#{true}" rendered="#{activity.csxpmtwo.csxpmtcomplete == '100'}" style="margin-left: 24px;"/>
+                                                                         <p:selectBooleanCheckbox value="#{false}" disabled="#{true}" rendered="#{activity.csxpmtwo.csxpmtcomplete != '100'}" style="margin-left: 24px;"/>
+                                                                  </p:column>
+                                                           </p:dataTable>
+                                                    </p:panel>
+<!--                                                                 <p:accordionPanel activeIndex="null" styleClass="accordian" rendered="#{not empty workorder.doclinks}"> -->
+<!--                                                                <p:tab title="Construction Notes Images"> -->
+<!--                                                                              <p:galleria value="#{workorder.doclinks}" var="doclink" panelWidth="500" panelHeight="313" showCaption="true"> -->
+<!--                                                                                      <p:graphicImage value="#{doclink.document}" alt="" title=""/> -->
+<!--                                                                              </p:galleria> -->
+<!--                                                                       </p:tab> -->
+<!--                                                                 </p:accordionPanel> -->
+                                                    <div id="constructionNotesTable_wrapper" style="margin-bottom: 30px;">
+	                                                    <p:accordionPanel activeIndex="null" styleClass="accordian">
+		                                                    <p:tab title="Show Construction Notes Activity Details">
+	                                                            <p:dataTable id="constructionNotesTable" var="activity" value="#{workorder.woactivity}" style="width: 100%;" reflow="true" styleClass="bot-border table-align no-header-borders horizontal-border">
+	                                                                <p:column id="ui-col-1" styleClass="construction-list-data-table-header-row" style="width: 15%;" headerText="Activity Name">
+	                                                                       <h:outputText id="activity" value="#{activity.csxpmtwo.csxpmtactivity}"/>
+	                                                                </p:column>
+	                                                                <p:column id="ui-col-2" styleClass="construction-list-data-table-header-row" headerText="Task ID" >
+	                                                                       <h:outputText id="taskId" value="#{activity.csxpmtwo.csxpmttaskid}"/>
+	                                                                </p:column>
+	                                                                <p:column id="ui-col-3" styleClass="construction-list-data-table-header-row" headerText="Task Description">
+	                                                                       <h:outputText id="description" value="#{activity.description}"/>
+	                                                                </p:column>
+	                                                                <p:column id="ui-col-4" styleClass="construction-list-data-table-header-row" headerText="% Completion">
+	                                                                       <h:outputText value="#{activity.csxpmtwo.csxpmtcomplete}" rendered="#{activity.csxpmtwo.csxpmtcomplete != null and activity.csxpmtwo.csxpmtcomplete !=''}" style="margin-left: 32px;"/>
+	                                                                       <h:outputText value="-" rendered="#{activity.csxpmtwo.csxpmtcomplete == null or activity.csxpmtwo.csxpmtcomplete ==''}" style="margin-left: 32px;"/>
+	                                                                </p:column>
+	                                                                <p:column id="ui-col-5" styleClass="construction-list-data-table-header-row" headerText="Reason Code">
+	                                                                       <h:outputText value="#{activity.csxpmtwo.csxpmtreasoncode}" rendered="#{activity.csxpmtreasoncode != null and activity.csxpmtwo.csxpmtreasoncode!=''}"/>
+	                                                                       <h:outputText value="-" rendered="#{((activity.csxpmtwo.csxpmtreasoncode != null and activity.csxpmtreasoncode !='') and (activity.csxpmtwo.csxsigcomment != null and activity.csxpmtwo.csxpmtcomment !='')) or ((activity.csxpmtwo.csxpmtreasoncode == null or activity.csxpmtwo.csxpmtreasoncode == '' ) and (activity.csxpmtwo.csxpmtcomment == null or activity.csxpmtwo.csxpmtcomment ==''))}"/>
+	                                                                       <h:outputText value="#{activity.csxpmtwo.csxpmtcomment}"/>
+	                                                                </p:column>
+	                                                            </p:dataTable>
+                                                           </p:tab>
+	                                                    </p:accordionPanel>
+                                                    </div>
+                                                </p:tab>
+	                                          </p:accordionPanel>
+                                			</ui:repeat>
+                                		</div>
+                            		</h:panelGroup>
+	                        	</div>
+	                    
+                        <div class="ui-grid-col-4">	                        
+	                        <p:panel header="Grouped by Locations" toggleable="true" styleClass="groupLocations">                        		
+                            	<!-- Panel Filter/Stats -->                            	
+                               		<h:panelGroup id="statsPanel" layout="block">
+	                                    <div id="statsPanelContainer" style="overflow-y: auto;">                                    	
+	                                        <p:dataTable id="locationTable"  var="location" value="#{constructionNotesPanelFilter.locations}" selection="#{constructionNotesPanelFilter.selectedLocations}" rowKey="#{location.hashCode()}" rendered="#{not empty constructionNotesPanelFilter.locations}" reflow="true" style="margin-top: auto;">
+	                                               <f:facet name="header">
+	                                             		Grouped by Locations
+	                                         		</f:facet>
+	                                              <p:ajax event="rowSelectCheckbox" listener="#{constructionNotes.onRowSelect}" oncomplete="setHeight()" update="constructionNotesForm:workOrdersPanel constructionNotesForm:totalWorkOrdersGroup" />
+	                                         <p:ajax event="rowUnselectCheckbox" listener="#{constructionNotes.onRowUnselect}" oncomplete="setHeight()" update="constructionNotesForm:workOrdersPanel constructionNotesForm:totalWorkOrdersGroup" />
+	                                         <p:column selectionMode="multiple" style="text-align: center;" headerText="Select" />
+	                                               <p:column id="ui-col-1" style="text-align: center;" headerText="Location" >
+	                                                     <h:outputText id="site-Location" value="#{location.csxpmtwo.unfpmtlocmpprefix}-#{location.csxpmtwo.unfpmtlocmp}" />
+	                                               </p:column>
+	                                               <p:column id="ui-col-2" style="text-align: center;" headerText="Spent/Available Hrs." styleClass="groupLocationTables">
+	                                                     <h:outputText id="hourOnProject" value="#{location.csxpmtwo.unfpmtlocacthours}/#{location.csxpmtwo.unfpmtlocesthours}"/>
+	                                               </p:column>
+	                                               <p:column id="ui-col-3" style="text-align: center;" headerText="Project Completed" >
+	                                                     <h:outputText id="isProjectComp" value="Yes" rendered="#{locations.status == 'COMP'}"/>
+	                                                     <h:outputText id="isProjectNotComp" value="No" rendered="#{locations.status != 'COMP'}"/>
+	                                               </p:column>
+	                                        </p:dataTable>
+	                                        <p:dataTable id="teamsTable" var="team" value="#{constructionNotesPanelFilter.teams}" selection="#{constructionNotesPanelFilter.selectedTeams}" rowKey="#{team.persongroup}" rendered="#{not empty constructionNotesPanelFilter.teams}" reflow="true" style="margin-top: auto;">
+	                                               <f:facet name="header">
+	                                             Grouped by Teams
+	                                         </f:facet>
+	                                         <p:ajax event="rowSelectCheckbox" listener="#{constructionNotes.onRowSelect}" oncomplete="setHeight()" update="constructionNotesForm:workOrdersPanel constructionNotesForm:totalWorkOrdersGroup" />
+	                                         <p:ajax event="rowUnselectCheckbox" listener="#{constructionNotes.onRowUnselect}" oncomplete="setHeight()" update="constructionNotesForm:workOrdersPanel constructionNotesForm:totalWorkOrdersGroup" />
+	                                               <p:column selectionMode="multiple" style="text-align: center;" headerText="Select"/>
+	                                               <p:column id="ui-col-1" style="text-align: center;" headerText="Team">
+	                                                     <h:outputText id="site-Location" value="#{team.persongroup}"/>
+	                                               </p:column>
+	                                        </p:dataTable>
+                                   		</div>
+                                	</h:panelGroup>
+                             
+                               </p:panel>
+                       		</div>
+                       </div>
+	                 </h:panelGroup>
+                 </div>
+                     <div  class="noNotesFound" style="margin-top: 15px; display: none">
+                        <h:panelGroup id="noNotesFound" rendered="#{empty constructionNotes.workorderSearchList}">
+                              <p:panelGrid columns="1" layout="grid" style="text-align: center;">
+                                     <h:outputText value="No Construction Notes Found"/>
+                              </p:panelGrid>
+                       </h:panelGroup>
+                     </div>
+              </h:form>
+              <div id="online_construction_list_loader" class="pmt_construction_loader_wrapper"></div>
+       </ui:define>
+       <!-- User message --> 
+       <ui:define rendered='#{authenticatedUser.validateAccess == false}'>
+       		<div style="margin-top: 10%;">
+       			<p:messages for = "infoMessage" showDetail="true" />
+       		</div>       		
+       </ui:define>
+</ui:composition>
